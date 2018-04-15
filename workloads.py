@@ -8,7 +8,10 @@
 
 import sys
 from pymongo import MongoClient
-
+import threading
+import random
+from datetime import datetime
+from pprint import pprint
 ####
 # Main start function
 ####
@@ -28,12 +31,35 @@ def main():
 ####
 def do_init(mongoURL):
     mongo_client = MongoClient(mongoURL)
-    if collection().find_one() is not None:
+    if mongo_client[DB][COLL].find_one() is not None:
         print('-- Initialization of collection "%s.%s" not performed because\n'
               '   collection already exists (run with command "CLEAN" first)\n'
               % (DB, COLL))
         return
-    
+    for threadcount in xrange(10):
+        t = threading.Thread(target=insert_new_docs, args=(mongo_client,))
+        t.start()
+
+####
+# Generate docs docs and insert them into the database
+####
+def insert_new_docs(mongo_client):
+    MAXBLOCKS = 3
+    BLOCKSIZE = 4
+    for i in xrange(MAXBLOCKS):
+        docs = []
+        for j in xrange(BLOCKSIZE):
+            docs.append(
+                {
+                    "accountNumber": random.randint(1,1000),
+                    "singupDate": datetime.utcnow(),
+                    "payment": random.randrange(50,200,5),
+                    "copay": random.randrange(20,60,10),
+                    "deductible": random.randrange(100,500,100)
+                    }
+                )
+        mongo_client[DB][COLL].insert_many(docs)
+
 ####
 # Remove the database collection and its documents
 ####
@@ -49,18 +75,14 @@ def do_clean(mongoURL):
 ####
 def do_operate(mongoURL):
     mongo_client = MongoClient(mongoURL)
+    while(TRUE):
+        
 
 ####
 # Generate an analytic workload
 # This will briefly generate a large number of reads
 def do_analyze(mongoURL):
     mongo_client = MongoClient(mongoURL)
-
-####
-# Get a handle on database.collection
-####
-def collection():
-    return mongo_client[DB][COLL]
 
 ####
 # Print out how to use this script
