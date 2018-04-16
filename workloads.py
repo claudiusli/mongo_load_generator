@@ -44,8 +44,8 @@ def do_init(mongoURL):
 # Generate docs docs and insert them into the database
 ####
 def insert_new_docs(mongo_client):
-    MAXBLOCKS = 3
-    BLOCKSIZE = 4
+    MAXBLOCKS = 100
+    BLOCKSIZE = 1000
     for i in xrange(MAXBLOCKS):
         docs = []
         for j in xrange(BLOCKSIZE):
@@ -75,14 +75,37 @@ def do_clean(mongoURL):
 ####
 def do_operate(mongoURL):
     mongo_client = MongoClient(mongoURL)
-    while(TRUE):
-        
+    while(True):
+        mongo_client[DB][COLL].update(
+            {
+                "accountNumber": random.randint(1,1000)
+            },
+            {
+                "$set":
+                {
+                    "singupDate": datetime.utcnow(),
+                    "payment": random.randrange(50,200,5),
+                    "copay": random.randrange(20,60,10),
+                    "deductible": random.randrange(100,500,100)
+                }
+            },
+            upsert=True
+        )
 
 ####
 # Generate an analytic workload
 # This will briefly generate a large number of reads
 def do_analyze(mongoURL):
     mongo_client = MongoClient(mongoURL)
+    for threadcount in xrange(10):
+        t = threading.Thread(target=read_all_docs, args=(mongo_client,))
+        t.start()
+
+def read_all_docs(mongo_client):
+    for iteration in xrange(10):
+        docs = mongo_client[DB][COLL].find()
+        for doc in docs:
+            pprint(doc['accountNumber'])
 
 ####
 # Print out how to use this script
